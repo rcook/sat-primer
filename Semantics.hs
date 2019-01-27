@@ -5,10 +5,13 @@
 
 module Semantics
     ( Expr(..)
+    , Interpretation
     , Name(..)
     , Value(..)
     , assign
+    , emptyInterpretation
     , evaluate
+    , exprAnd
     , extend
     , lookup
     , main
@@ -21,6 +24,9 @@ import Prelude hiding (lookup)
 newtype Name = Name String deriving (Eq, Ord, Show)
 data Value = ValueTrue | ValueFalse deriving (Eq, Show)
 type Interpretation = Map Name Value
+
+emptyInterpretation :: Interpretation
+emptyInterpretation = Map.empty
 
 assign :: [(Name, Value)] -> Interpretation
 assign = Map.fromList
@@ -40,6 +46,7 @@ data Expr =
     | ExprOr Expr Expr
     | ExprImplies Expr Expr
     | ExprEquiv Expr Expr
+    deriving Show
 
 exprNot :: Value -> Value
 exprNot ValueTrue = ValueFalse
