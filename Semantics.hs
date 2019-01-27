@@ -59,15 +59,15 @@ and :: Value -> Value -> Value
 and ValueTrue ValueTrue = ValueTrue
 and _ _ = ValueFalse
 
-exprOr :: Value -> Value -> Value
-exprOr ValueTrue _ = ValueTrue
-exprOr _ ValueTrue = ValueTrue
-exprOr _ _ = ValueFalse
+or :: Value -> Value -> Value
+or ValueTrue _ = ValueTrue
+or _ ValueTrue = ValueTrue
+or _ _ = ValueFalse
 
-exprEquals :: Value -> Value -> Value
-exprEquals ValueTrue ValueTrue = ValueTrue
-exprEquals ValueFalse ValueFalse = ValueTrue
-exprEquals _ _ = ValueFalse
+equals :: Value -> Value -> Value
+equals ValueTrue ValueTrue = ValueTrue
+equals ValueFalse ValueFalse = ValueTrue
+equals _ _ = ValueFalse
 
 -- | Return true if interpretation satisfies expression, false if interpretation
 -- does not satisfy expression.
@@ -77,9 +77,9 @@ evaluate EFalse _ = Just $ ValueFalse
 evaluate (Var name) i = lookup name i
 evaluate (Not f) i = not <$> evaluate f i
 evaluate (And f1 f2) i = and <$> evaluate f1 i <*> evaluate f2 i
-evaluate (Or f1 f2) i = exprOr <$> evaluate f1 i <*> evaluate f2 i
-evaluate (Implies f1 f2) i = exprOr <$> (not <$> evaluate f1 i) <*> evaluate f2 i
-evaluate (Equiv f1 f2) i = exprEquals <$> evaluate f1 i <*> evaluate f2 i
+evaluate (Or f1 f2) i = or <$> evaluate f1 i <*> evaluate f2 i
+evaluate (Implies f1 f2) i = or <$> (not <$> evaluate f1 i) <*> evaluate f2 i
+evaluate (Equiv f1 f2) i = equals <$> evaluate f1 i <*> evaluate f2 i
 
 main :: IO ()
 main = do
