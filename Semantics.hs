@@ -38,14 +38,14 @@ extend :: Name -> Value -> Interpretation -> Interpretation
 extend = Map.insert
 
 data Expr =
-    ExprTrue
-    | ExprFalse
-    | ExprVar Name
-    | ExprNot Expr
-    | ExprAnd Expr Expr
-    | ExprOr Expr Expr
-    | ExprImplies Expr Expr
-    | ExprEquiv Expr Expr
+    ETrue
+    | EFalse
+    | Var Name
+    | Not Expr
+    | And Expr Expr
+    | Or Expr Expr
+    | Implies Expr Expr
+    | Equiv Expr Expr
     deriving Show
 
 exprNot :: Value -> Value
@@ -69,14 +69,14 @@ exprEquals _ _ = ValueFalse
 -- | Return true if interpretation satisfies expression, false if interpretation
 -- does not satisfy expression.
 evaluate :: Expr -> Interpretation -> Maybe Value
-evaluate ExprTrue _ = Just $ ValueTrue
-evaluate ExprFalse _ = Just $ ValueFalse
-evaluate (ExprVar name) i = lookup name i
-evaluate (ExprNot f) i = exprNot <$> evaluate f i
-evaluate (ExprAnd f1 f2) i = exprAnd <$> evaluate f1 i <*> evaluate f2 i
-evaluate (ExprOr f1 f2) i = exprOr <$> evaluate f1 i <*> evaluate f2 i
-evaluate (ExprImplies f1 f2) i = exprOr <$> (exprNot <$> evaluate f1 i) <*> evaluate f2 i
-evaluate (ExprEquiv f1 f2) i = exprEquals <$> evaluate f1 i <*> evaluate f2 i
+evaluate ETrue _ = Just $ ValueTrue
+evaluate EFalse _ = Just $ ValueFalse
+evaluate (Var name) i = lookup name i
+evaluate (Not f) i = exprNot <$> evaluate f i
+evaluate (And f1 f2) i = exprAnd <$> evaluate f1 i <*> evaluate f2 i
+evaluate (Or f1 f2) i = exprOr <$> evaluate f1 i <*> evaluate f2 i
+evaluate (Implies f1 f2) i = exprOr <$> (exprNot <$> evaluate f1 i) <*> evaluate f2 i
+evaluate (Equiv f1 f2) i = exprEquals <$> evaluate f1 i <*> evaluate f2 i
 
 main :: IO ()
 main = do
@@ -89,7 +89,7 @@ main = do
     --print $ evaluate (ExprVar (Name "x0")) i1
     --print $ evaluate (ExprNot (ExprVar (Name "x0"))) i1
     putStrLn "main"
-    print $ evaluate (ExprImplies (ExprVar (Name "x0")) (ExprVar (Name "x1"))) i1
+    print $ evaluate (Implies (Var (Name "x0")) (Var (Name "x1"))) i1
 
     example1
     example2
@@ -101,7 +101,7 @@ example1 = do
         false = ValueFalse
         true = ValueTrue
     putStrLn "example1"
-    print $ evaluate (ExprAnd (ExprNot (ExprVar x1)) (ExprVar x2)) (assign [(x1, false), (x2, true)])
+    print $ evaluate (And (Not (Var x1)) (Var x2)) (assign [(x1, false), (x2, true)])
 
 example2 :: IO ()
 example2 = do
@@ -110,4 +110,4 @@ example2 = do
         false = ValueFalse
         true = ValueTrue
     putStrLn "example2"
-    print $ evaluate (ExprAnd (ExprNot (ExprVar x1)) (ExprVar x2)) (assign [(x1, true), (x2, true)])
+    print $ evaluate (And (Not (Var x1)) (Var x2)) (assign [(x1, true), (x2, true)])
