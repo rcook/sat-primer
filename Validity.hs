@@ -1,11 +1,14 @@
 #!/usr/bin/env stack
 -- stack --resolver=lts-12.6 script --package containers
 
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wincomplete-patterns #-}
 
 module Validity (main) where
 
 import Data.List (nub)
+
+import SATPrelude
 import Semantics hiding (main)
 
 variables :: Expr -> [Name]
@@ -27,7 +30,7 @@ searchValid f =
     in allSat vars i
     where
         allSat :: [Name] -> Interpretation -> Maybe Value
-        allSat (v : vs) i = exprAnd <$> allSat vs (extend v ValueFalse i) <*> allSat vs (extend v ValueTrue i)
+        allSat (v : vs) i = and <$> allSat vs (extend v ValueFalse i) <*> allSat vs (extend v ValueTrue i)
         allSat [] i = evaluate f i
 
 
