@@ -8,7 +8,8 @@ module SATPrelude
     , (&&)
     , (.)
     , Bool(..)
-    , Eq
+    , Either(..)
+    , Eq(..)
     , IO
     , Maybe(..)
     , Ord(..)
@@ -19,8 +20,10 @@ module SATPrelude
     , error
     , flip
     , foldl'
+    , id
     , map
     , print
+    , pure
     , putStrLn
     ) where
 

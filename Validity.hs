@@ -1,12 +1,19 @@
 #!/usr/bin/env stack
--- stack --resolver=lts-12.6 script --package containers
+{-
+    stack --resolver=lts-12.6 script
+    --package containers
+    --package transformers
+-}
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wincomplete-patterns #-}
 
 module Validity (main) where
 
+import Control.Monad.Trans.State.Strict (State, get, put, runState)
 import Data.List (nub)
+import Text.Printf (printf)
+
 import Debug.Trace
 
 import SATPrelude
@@ -53,8 +60,12 @@ main = do
     print $ searchValid f4
     -}
 
-    print $ deduceValid (Implies (And x1 (Implies x1 x2)) x2)
-    print $ deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
+    print $
+        deduceValid (Implies (And x1 (Implies x1 x2)) x2)
+        == Right (Deduction {contradictions = [[ISatisfies (Var (Name "x2")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))]], models = []})
+    print $
+        deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
+        == Left (Deduction {contradictions = [[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1"))]], models = [[IDoesNotSatisfy (Var (Name "x2")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x2")),ISatisfies (Var (Name "x1"))]]})
 
 -- TBD: Is there a more elegant way to do this?
 splitFacts :: (a -> Maybe b) -> [a] -> ([a], Maybe b, [a])
@@ -81,62 +92,32 @@ data A =
     | Branch Fact Fact
     deriving Show
 
--- Rule 1
-rule (ISatisfies (Not f)) =
-    let res = Just (OneFact (IDoesNotSatisfy f))
-    in trace ("rule1: " ++ show res) res
--- Rule 2
-rule (IDoesNotSatisfy (Not f)) =
-    let res = Just (OneFact (ISatisfies f))
-    in trace ("rule2: " ++ show res) res
--- Rule 3
-rule (ISatisfies (And f1 f2)) =
-    let res = Just (TwoFacts (ISatisfies f1) (ISatisfies f2))
-    in trace ("rule3: " ++ show res) res
--- Rule 4
-rule (IDoesNotSatisfy (And f1 f2)) =
-    let res = Just
-                (Branch
-                    (IDoesNotSatisfy f1)
-                    (IDoesNotSatisfy f2))
-    in trace ("rule4: " ++ show res) res
--- Rule 5
-rule (ISatisfies (Or f1 f2)) =
-    let res = Just
-                (Branch
-                    (ISatisfies f1)
-                    (ISatisfies f2))
-    in trace ("rule5: " ++ show res) res
--- Rule 6
-rule (IDoesNotSatisfy (Or f1 f2)) =
-    let res = Just (TwoFacts (IDoesNotSatisfy f1) (IDoesNotSatisfy f2))
-    in trace ("rule6: " ++ show res) res
--- Rule 7
-rule (ISatisfies (Implies f1 f2)) =
-    let res = Just
-                (Branch
-                    (IDoesNotSatisfy f1)
-                    (ISatisfies f2))
-    in trace ("rule7: " ++ show res) res
--- Rule 8
-rule (IDoesNotSatisfy (Implies f1 f2)) =
-    let res = Just (TwoFacts (ISatisfies f1) (IDoesNotSatisfy f2))
-    in trace ("rule8: " ++ show res) res
--- Rule 9
-rule (ISatisfies (Equiv f1 f2)) =
-    let res = Just
-                (Branch
-                    (ISatisfies (And f1 f2))
-                    (IDoesNotSatisfy (Or f1 f2)))
-    in trace ("rule9: " ++ show res) res
--- Rule 10
-rule (IDoesNotSatisfy (Equiv f1 f2)) =
-    let res = Just
-                (Branch
-                    (ISatisfies (And f1 (Not f2)))
-                    (ISatisfies (And (Not f1) f2)))
-    in trace ("rule10: " ++ show res) res
--- Does not match any rule
+--traceRule :: String -> Maybe A -> Maybe A
+--traceRule ctx res = trace (printf "%s: %s" ctx (show res)) res
+traceRule :: String -> A -> Maybe A
+traceRule _ = Just . id
+
+rule :: Fact -> Maybe A
+rule (ISatisfies (Not f)) = traceRule "rule1" $
+    OneFact (IDoesNotSatisfy f)
+rule (IDoesNotSatisfy (Not f)) = traceRule "rule2" $
+    OneFact (ISatisfies f)
+rule (ISatisfies (And f1 f2)) = traceRule "rule3" $
+    TwoFacts (ISatisfies f1) (ISatisfies f2)
+rule (IDoesNotSatisfy (And f1 f2)) = traceRule "rule4" $
+    Branch (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
+rule (ISatisfies (Or f1 f2)) = traceRule "rule5" $
+    Branch (ISatisfies f1) (ISatisfies f2)
+rule (IDoesNotSatisfy (Or f1 f2)) = traceRule "rule6" $
+    TwoFacts (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
+rule (ISatisfies (Implies f1 f2)) = traceRule "rule7" $
+    Branch (IDoesNotSatisfy f1) (ISatisfies f2)
+rule (IDoesNotSatisfy (Implies f1 f2)) = traceRule "rule8" $
+    TwoFacts (ISatisfies f1) (IDoesNotSatisfy f2)
+rule (ISatisfies (Equiv f1 f2)) = traceRule "rule9" $
+    Branch (ISatisfies (And f1 f2)) (IDoesNotSatisfy (Or f1 f2))
+rule (IDoesNotSatisfy (Equiv f1 f2)) = traceRule "rule10" $
+    Branch (ISatisfies (And f1 (Not f2))) (ISatisfies (And (Not f1) f2))
 rule _ = Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
@@ -149,24 +130,36 @@ findContradictions fs =
         []
         fs
 
-deduceValid :: Expr -> Bool
+data Deduction = Deduction
+    { contradictions :: [[Fact]]
+    , models :: [[Fact]]
+    } deriving (Eq, Show)
+
+deduceValid :: Expr -> Either Deduction Deduction
 deduceValid f =
     let facts = [IDoesNotSatisfy f]
-    in allClosed facts
+    in case runState (allClosed facts) (Deduction [] []) of
+        (False, result) -> Left result
+        (True, result) -> Right result
     where
+        allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
             case splitFacts rule facts of
                 (gs, Just (OneFact f), hs) ->
                     allClosed (f : gs ++ hs)
                 (gs, Just (TwoFacts f1 f2), hs) ->
                     allClosed (f1 : f2 : gs ++ hs)
-                (gs, Just (Branch f1 f2), hs) ->
-                    allClosed (f1 : gs ++ hs)
-                        && allClosed (f2 : gs ++ hs)
+                (gs, Just (Branch f1 f2), hs) -> do
+                    r0 <- allClosed (f1 : gs ++ hs)
+                    r1 <- allClosed (f2 : gs ++ hs)
+                    pure $ r0 && r1
                 _ ->
                     case findContradictions facts of
-                        (c : _) -> trace ("contradictions on " ++ show (name c) ++ ": " ++ show facts) True
-                                        where
-                                            name (ISatisfies (Var n)) = n
-                                            name (IDoesNotSatisfy (Var n)) = n
-                        [] -> trace ("open on " ++ show facts) False
+                        (c : _) -> do
+                            d <- get
+                            put $ d { contradictions = facts : contradictions d }
+                            pure True
+                        [] -> do
+                            d <- get
+                            put $ d { models = facts : models d }
+                            pure False
