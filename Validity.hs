@@ -1,8 +1,9 @@
 #!/usr/bin/env stack
 {-
     stack --resolver=lts-12.6 script
-    --package containers
-    --package transformers
+        --package containers
+        --package hspec
+        --package transformers
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -12,6 +13,7 @@ module Validity (main) where
 
 import Control.Monad.Trans.State.Strict (State, get, put, runState)
 import Data.List (nub)
+import Test.Hspec
 import Text.Printf (printf)
 
 import Debug.Trace
@@ -43,9 +45,6 @@ searchValid f =
 
 main :: IO ()
 main = do
-    let x1 = Var (Name "x1")
-        x2 = Var (Name "x2")
-
     {-
     let f1 = Implies (And x1 x2) (Or x1 (Not x2))
     print $ searchValid f1
@@ -59,13 +58,19 @@ main = do
     let f4 = Implies (Or x1 (Not x2)) (And x1 x2)
     print $ searchValid f4
     -}
+    spec
 
-    print $
-        deduceValid (Implies (And x1 (Implies x1 x2)) x2)
-        == Right (Deduction {contradictions = [[ISatisfies (Var (Name "x2")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))]], models = []})
-    print $
-        deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
-        == Left (Deduction {contradictions = [[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1"))]], models = [[IDoesNotSatisfy (Var (Name "x2")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x2")),ISatisfies (Var (Name "x1"))]]})
+spec :: IO ()
+spec = hspec $ do
+    let x1 = Var (Name "x1")
+        x2 = Var (Name "x2")
+    describe "deduceValid" $ do
+        it "proves formula" $
+            deduceValid (Implies (And x1 (Implies x1 x2)) x2)
+                `shouldBe` Right (Deduction {contradictions = [[ISatisfies (Var (Name "x2")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))]], models = []})
+        it "disproves formula" $
+            deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
+                `shouldBe` Left (Deduction {contradictions = [[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1"))]], models = [[IDoesNotSatisfy (Var (Name "x2")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x2")),ISatisfies (Var (Name "x1"))]]})
 
 -- TBD: Is there a more elegant way to do this?
 splitFacts :: (a -> Maybe b) -> [a] -> ([a], Maybe b, [a])
