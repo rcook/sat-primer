@@ -44,26 +44,17 @@ searchValid f =
         allSat [] i = evaluate f i
 
 main :: IO ()
-main = do
-    {-
-    let f1 = Implies (And x1 x2) (Or x1 (Not x2))
-    print $ searchValid f1
-
-    let f2 = Implies (Or x1 (Not x2)) (And x1 x2)
-    print $ searchValid f2
-
-    let f3 = Implies (And x1 (Implies x1 x2)) x2
-    print $ searchValid f3
-
-    let f4 = Implies (Or x1 (Not x2)) (And x1 x2)
-    print $ searchValid f4
-    -}
-    spec
-
-spec :: IO ()
-spec = hspec $ do
+main = hspec $ do
     let x1 = Var (Name "x1")
         x2 = Var (Name "x2")
+    describe "searchValid" $
+        it "searches successfully" $ do
+            searchValid (Implies (And x1 x2) (Or x1 (Not x2)))
+                `shouldBe` Just ValueTrue
+            searchValid (Implies (Or x1 (Not x2)) (And x1 x2))
+                `shouldBe` Just ValueFalse
+            searchValid (Implies (And x1 (Implies x1 x2)) x2)
+                `shouldBe` Just ValueTrue
     describe "deduceValid" $ do
         it "proves formula" $
             deduceValid (Implies (And x1 (Implies x1 x2)) x2)
