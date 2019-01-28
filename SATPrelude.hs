@@ -17,7 +17,6 @@ module SATPrelude
     , String
     , any
     , elem
-    , error
     , flip
     , foldl'
     , id
