@@ -67,10 +67,25 @@ spec = hspec $ do
     describe "deduceValid" $ do
         it "proves formula" $
             deduceValid (Implies (And x1 (Implies x1 x2)) x2)
-                `shouldBe` Right (Deduction {contradictions = [[ISatisfies (Var (Name "x2")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))]], models = []})
+                `shouldBe` Right (Deduction
+                    { contradictions =
+                        [ [ISatisfies (Var (Name "x2")), ISatisfies (Var (Name "x1")), IDoesNotSatisfy (Var (Name "x2"))]
+                        , [IDoesNotSatisfy (Var (Name "x1")), ISatisfies (Var (Name "x1")), IDoesNotSatisfy (Var (Name "x2"))]
+                        ]
+                    , models = []
+                    })
         it "disproves formula" $
             deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
-                `shouldBe` Left (Deduction {contradictions = [[IDoesNotSatisfy (Var (Name "x1")),ISatisfies (Var (Name "x1"))]], models = [[IDoesNotSatisfy (Var (Name "x2")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x1")),IDoesNotSatisfy (Var (Name "x2"))],[IDoesNotSatisfy (Var (Name "x2")),ISatisfies (Var (Name "x1"))]]})
+                `shouldBe` Left (Deduction
+                    { contradictions =
+                        [ [IDoesNotSatisfy (Var (Name "x1")), ISatisfies (Var (Name "x1"))]
+                        ]
+                    , models =
+                        [ [IDoesNotSatisfy (Var (Name "x2")), IDoesNotSatisfy (Var (Name "x2"))]
+                        , [IDoesNotSatisfy (Var (Name "x1")), IDoesNotSatisfy (Var (Name "x2"))]
+                        , [IDoesNotSatisfy (Var (Name "x2")), ISatisfies (Var (Name "x1"))]
+                        ]
+                    })
 
 -- TBD: Is there a more elegant way to do this?
 splitFacts :: (a -> Maybe b) -> [a] -> ([a], Maybe b, [a])
