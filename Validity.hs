@@ -193,8 +193,12 @@ rule _ = Nothing
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
 
-isContradictory :: [Fact] -> Bool
-isContradictory fs = any ((flip hasContradiction) fs) fs
+findContradictions :: [Fact] -> [Fact]
+findContradictions fs =
+    foldl'
+        (\cs f -> if hasContradiction f fs then f : cs else cs)
+        []
+        fs
 
 deduceValid :: Expr -> Bool
 deduceValid f =
@@ -211,6 +215,9 @@ deduceValid f =
                     allClosed (f1 : gs ++ hs)
                         && allClosed (f2 : gs ++ hs)
                 _ ->
-                    if isContradictory facts
-                        then trace "contradiction" True
-                        else trace "open" False
+                    case findContradictions facts of
+                        (c : _) -> trace ("contradictions on " ++ show (name c) ++ ": " ++ show facts) True
+                                        where
+                                            name (ISatisfies (Var n)) = n
+                                            name (IDoesNotSatisfy (Var n)) = n
+                        [] -> trace ("open on " ++ show facts) False
