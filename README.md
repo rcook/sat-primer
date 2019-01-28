@@ -8,3 +8,7 @@
 ## Truth tables etc.
 
 * http://sites.millersville.edu/bikenaga/math-proof/truth-tables/truth-tables.html
+
+## Errata
+
+* Under _Proof rules for propositional logic_: "by 5 and (9)" should be "by 5 and (7)"

@@ -49,7 +49,7 @@ data Expr =
     | Or Expr Expr
     | Implies Expr Expr
     | Equiv Expr Expr
-    deriving Show
+    deriving (Eq, Show)
 
 not :: Value -> Value
 not ValueTrue = ValueFalse
