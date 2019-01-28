@@ -104,8 +104,8 @@ main = do
     print $ searchValid f4
     -}
 
-    --print $ blah (Implies (And x1 (Implies x1 x2)) x2)
-    print $ blah (Implies (Or x1 (Not x2)) (And x1 x2))
+    print $ deduceValid (Implies (And x1 (Implies x1 x2)) x2)
+    print $ deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
 
 -- TBD: Is there a more elegant way to do this?
 splitFacts :: (a -> Maybe b) -> [a] -> ([a], Maybe b, [a])
@@ -188,7 +188,7 @@ rule (IDoesNotSatisfy (Equiv f1 f2)) =
                     (ISatisfies (And (Not f1) f2)))
     in trace ("rule10: " ++ show res) res
 -- Does not match any rule
-rule r = trace ("could not match rule: " ++ show r) Nothing
+rule _ = Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
@@ -196,8 +196,8 @@ hasContradiction = elem . contra
 isContradictory :: [Fact] -> Bool
 isContradictory fs = any ((flip hasContradiction) fs) fs
 
---blah :: Expr -> Maybe Value
-blah f =
+deduceValid :: Expr -> Bool
+deduceValid f =
     let facts = [IDoesNotSatisfy f]
     in allClosed facts
     where
@@ -212,5 +212,5 @@ blah f =
                         && allClosed (f2 : gs ++ hs)
                 _ ->
                     if isContradictory facts
-                        then error "CONTRADICTIONS"
-                        else error (show facts)
+                        then trace "contradiction" True
+                        else trace "open" False
