@@ -86,39 +86,39 @@ contra :: Fact -> Fact
 contra (ISatisfies f) = IDoesNotSatisfy f
 contra (IDoesNotSatisfy f) = ISatisfies f
 
-data A =
+data Conclusion =
     OneFact Fact
     | TwoFacts Fact Fact
     | Branch Fact Fact
     deriving Show
 
---traceRule :: String -> Maybe A -> Maybe A
---traceRule ctx res = trace (printf "%s: %s" ctx (show res)) res
-traceRule :: String -> A -> Maybe A
-traceRule _ = Just . id
+--traceConclusion :: String -> A -> Maybe A
+--traceConclusion ctx res = trace (printf "rule %s: %s" ctx (show res)) (Just res)
+traceConclusion :: String -> Conclusion -> Maybe Conclusion
+traceConclusion _ = Just . id
 
-rule :: Fact -> Maybe A
-rule (ISatisfies (Not f)) = traceRule "rule1" $
+matchRule :: Fact -> Maybe Conclusion
+matchRule (ISatisfies (Not f)) = traceConclusion "1" $
     OneFact (IDoesNotSatisfy f)
-rule (IDoesNotSatisfy (Not f)) = traceRule "rule2" $
+matchRule (IDoesNotSatisfy (Not f)) = traceConclusion "2" $
     OneFact (ISatisfies f)
-rule (ISatisfies (And f1 f2)) = traceRule "rule3" $
+matchRule (ISatisfies (And f1 f2)) = traceConclusion "3" $
     TwoFacts (ISatisfies f1) (ISatisfies f2)
-rule (IDoesNotSatisfy (And f1 f2)) = traceRule "rule4" $
+matchRule (IDoesNotSatisfy (And f1 f2)) = traceConclusion "4" $
     Branch (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
-rule (ISatisfies (Or f1 f2)) = traceRule "rule5" $
+matchRule (ISatisfies (Or f1 f2)) = traceConclusion "5" $
     Branch (ISatisfies f1) (ISatisfies f2)
-rule (IDoesNotSatisfy (Or f1 f2)) = traceRule "rule6" $
+matchRule (IDoesNotSatisfy (Or f1 f2)) = traceConclusion "6" $
     TwoFacts (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
-rule (ISatisfies (Implies f1 f2)) = traceRule "rule7" $
+matchRule (ISatisfies (Implies f1 f2)) = traceConclusion "7" $
     Branch (IDoesNotSatisfy f1) (ISatisfies f2)
-rule (IDoesNotSatisfy (Implies f1 f2)) = traceRule "rule8" $
+matchRule (IDoesNotSatisfy (Implies f1 f2)) = traceConclusion "8" $
     TwoFacts (ISatisfies f1) (IDoesNotSatisfy f2)
-rule (ISatisfies (Equiv f1 f2)) = traceRule "rule9" $
+matchRule (ISatisfies (Equiv f1 f2)) = traceConclusion "9" $
     Branch (ISatisfies (And f1 f2)) (IDoesNotSatisfy (Or f1 f2))
-rule (IDoesNotSatisfy (Equiv f1 f2)) = traceRule "rule10" $
+matchRule (IDoesNotSatisfy (Equiv f1 f2)) = traceConclusion "10" $
     Branch (ISatisfies (And f1 (Not f2))) (ISatisfies (And (Not f1) f2))
-rule _ = Nothing
+matchRule _ = Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
@@ -144,7 +144,7 @@ deduceValid f =
     where
         allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
-            case splitFacts rule facts of
+            case splitFacts matchRule facts of
                 (gs, Just (OneFact f), hs) ->
                     allClosed (f : gs ++ hs)
                 (gs, Just (TwoFacts f1 f2), hs) ->
