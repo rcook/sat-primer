@@ -159,8 +159,7 @@ deduceValid f =
                     allClosed (fs ++ gs ++ hs)
                 (gs, Just (Branch fs@(f1 : f2 : _)), hs) -> do
                     let t = gs ++ hs
-                    results <- sequence (map (allClosed . (: t)) fs)
-                    pure $ all (== True) results
+                    all (== True) <$> sequence (map (allClosed . (: t)) fs)
                 _ ->
                     case findContradictions facts of
                         (c : _) -> do
