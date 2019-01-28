@@ -114,6 +114,7 @@ deduceValid f =
         (False, result) -> Left result
         (True, result) -> Right result
     where
+        allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
             case matchRule facts of
                 Just xyz -> xyz
@@ -128,15 +129,20 @@ deduceValid f =
                             put $ d { models = facts : models d }
                             pure False
 
+        branch :: [Fact] -> [Fact] -> State Deduction Bool
         branch fs xs = all (== True) <$> sequence (map (allClosed . (: xs)) fs)
 
+        matchRule :: [Fact] -> Maybe (State Deduction Bool)
         matchRule xs = go [] xs []
             where
+                go :: [Fact] -> [Fact] -> [Fact] -> Maybe (State Deduction Bool)
                 go gs (x : xs) hs =
                     case rule x (gs ++ xs ++ hs) of
                         result@(Just _) -> result
                         _ -> go (gs ++ [x]) xs hs
                 go gs _ hs = Nothing
+
+                rule :: Fact -> [Fact] -> Maybe (State Deduction Bool)
                 rule (ISatisfies (Not f)) = Just . allClosed . (IFalsifies f :)
                 rule (IFalsifies (Not f)) = Just . allClosed . (ISatisfies f :)
                 rule (ISatisfies (And f1 f2)) = Just . allClosed . ([ISatisfies f1, ISatisfies f2] ++)
