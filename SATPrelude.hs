@@ -15,6 +15,7 @@ module SATPrelude
     , Ord(..)
     , Show(..)
     , String
+    , all
     , any
     , elem
     , flip
@@ -24,6 +25,7 @@ module SATPrelude
     , print
     , pure
     , putStrLn
+    , sequence
     ) where
 
 import Data.Foldable (foldl')

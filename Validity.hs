@@ -98,9 +98,8 @@ contra (ISatisfies f) = IDoesNotSatisfy f
 contra (IDoesNotSatisfy f) = ISatisfies f
 
 data Conclusion =
-    OneFact Fact
-    | TwoFacts Fact Fact
-    | Branch Fact Fact
+    FactList [Fact]
+    | Branch [Fact]
     deriving Show
 
 --traceConclusion :: String -> A -> Maybe A
@@ -110,25 +109,25 @@ traceConclusion _ = Just . id
 
 matchFact :: Fact -> Maybe Conclusion
 matchFact (ISatisfies (Not f)) = traceConclusion "1" $
-    OneFact (IDoesNotSatisfy f)
+    FactList [IDoesNotSatisfy f]
 matchFact (IDoesNotSatisfy (Not f)) = traceConclusion "2" $
-    OneFact (ISatisfies f)
+    FactList [ISatisfies f]
 matchFact (ISatisfies (And f1 f2)) = traceConclusion "3" $
-    TwoFacts (ISatisfies f1) (ISatisfies f2)
+    FactList [ISatisfies f1, ISatisfies f2]
 matchFact (IDoesNotSatisfy (And f1 f2)) = traceConclusion "4" $
-    Branch (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
+    Branch [IDoesNotSatisfy f1, IDoesNotSatisfy f2]
 matchFact (ISatisfies (Or f1 f2)) = traceConclusion "5" $
-    Branch (ISatisfies f1) (ISatisfies f2)
+    Branch [ISatisfies f1, ISatisfies f2]
 matchFact (IDoesNotSatisfy (Or f1 f2)) = traceConclusion "6" $
-    TwoFacts (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
+    FactList [IDoesNotSatisfy f1, IDoesNotSatisfy f2]
 matchFact (ISatisfies (Implies f1 f2)) = traceConclusion "7" $
-    Branch (IDoesNotSatisfy f1) (ISatisfies f2)
+    Branch [IDoesNotSatisfy f1, ISatisfies f2]
 matchFact (IDoesNotSatisfy (Implies f1 f2)) = traceConclusion "8" $
-    TwoFacts (ISatisfies f1) (IDoesNotSatisfy f2)
+    FactList [ISatisfies f1, IDoesNotSatisfy f2]
 matchFact (ISatisfies (Equiv f1 f2)) = traceConclusion "9" $
-    Branch (ISatisfies (And f1 f2)) (IDoesNotSatisfy (Or f1 f2))
+    Branch [ISatisfies (And f1 f2), IDoesNotSatisfy (Or f1 f2)]
 matchFact (IDoesNotSatisfy (Equiv f1 f2)) = traceConclusion "10" $
-    Branch (ISatisfies (And f1 (Not f2))) (ISatisfies (And (Not f1) f2))
+    Branch [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
 matchFact _ = Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
@@ -156,14 +155,12 @@ deduceValid f =
         allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
             case splitFacts matchFact facts of
-                (gs, Just (OneFact f), hs) ->
-                    allClosed (f : gs ++ hs)
-                (gs, Just (TwoFacts f1 f2), hs) ->
-                    allClosed (f1 : f2 : gs ++ hs)
-                (gs, Just (Branch f1 f2), hs) -> do
-                    r0 <- allClosed (f1 : gs ++ hs)
-                    r1 <- allClosed (f2 : gs ++ hs)
-                    pure $ r0 && r1
+                (gs, Just (FactList fs), hs) ->
+                    allClosed (fs ++ gs ++ hs)
+                (gs, Just (Branch fs@(f1 : f2 : _)), hs) -> do
+                    let t = gs ++ hs
+                    results <- sequence (map (allClosed . (: t)) fs)
+                    pure $ all (== True) results
                 _ ->
                     case findContradictions facts of
                         (c : _) -> do
