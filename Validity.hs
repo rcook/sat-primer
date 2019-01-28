@@ -158,6 +158,10 @@ rule (ISatisfies (Or f1 f2)) =
                     (ISatisfies f1)
                     (ISatisfies f2))
     in trace ("rule5: " ++ show res) res
+-- Rule 6
+rule (IDoesNotSatisfy (Or f1 f2)) =
+    let res = Just (TwoFacts (IDoesNotSatisfy f1) (IDoesNotSatisfy f2))
+    in trace ("rule6: " ++ show res) res
 -- Rule 7
 rule (ISatisfies (Implies f1 f2)) =
     let res = Just
@@ -176,7 +180,15 @@ rule (ISatisfies (Equiv f1 f2)) =
                     (ISatisfies (And f1 f2))
                     (IDoesNotSatisfy (Or f1 f2)))
     in trace ("rule9: " ++ show res) res
-rule r = error $ "could not match rule: " ++ show r
+-- Rule 10
+rule (IDoesNotSatisfy (Equiv f1 f2)) =
+    let res = Just
+                (Branch
+                    (ISatisfies (And f1 (Not f2)))
+                    (ISatisfies (And (Not f1) f2)))
+    in trace ("rule10: " ++ show res) res
+-- Does not match any rule
+rule r = trace ("could not match rule: " ++ show r) Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
