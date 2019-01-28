@@ -17,6 +17,7 @@ module SATPrelude
     , String
     , all
     , any
+    , const
     , elem
     , flip
     , foldl'

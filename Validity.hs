@@ -60,8 +60,8 @@ main = hspec $ do
             deduceValid (Implies (And x1 (Implies x1 x2)) x2)
                 `shouldBe` Right (Deduction
                     { contradictions =
-                        [ [ISatisfies (Var (Name "x2")), ISatisfies (Var (Name "x1")), IDoesNotSatisfy (Var (Name "x2"))]
-                        , [IDoesNotSatisfy (Var (Name "x1")), ISatisfies (Var (Name "x1")), IDoesNotSatisfy (Var (Name "x2"))]
+                        [ [ISatisfies (Var (Name "x2")), ISatisfies (Var (Name "x1")), IFalsifies (Var (Name "x2"))]
+                        , [IFalsifies (Var (Name "x1")), ISatisfies (Var (Name "x1")), IFalsifies (Var (Name "x2"))]
                         ]
                     , models = []
                     })
@@ -69,66 +69,28 @@ main = hspec $ do
             deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
                 `shouldBe` Left (Deduction
                     { contradictions =
-                        [ [IDoesNotSatisfy (Var (Name "x1")), ISatisfies (Var (Name "x1"))]
+                        [ [IFalsifies (Var (Name "x1")), ISatisfies (Var (Name "x1"))]
                         ]
                     , models =
-                        [ [IDoesNotSatisfy (Var (Name "x2")), IDoesNotSatisfy (Var (Name "x2"))]
-                        , [IDoesNotSatisfy (Var (Name "x1")), IDoesNotSatisfy (Var (Name "x2"))]
-                        , [IDoesNotSatisfy (Var (Name "x2")), ISatisfies (Var (Name "x1"))]
+                        [ [IFalsifies (Var (Name "x2")), IFalsifies (Var (Name "x2"))]
+                        , [IFalsifies (Var (Name "x1")), IFalsifies (Var (Name "x2"))]
+                        , [IFalsifies (Var (Name "x2")), ISatisfies (Var (Name "x1"))]
                         ]
                     })
 
--- TBD: Is there a more elegant way to do this?
-splitFacts :: (a -> Maybe b) -> [a] -> ([a], Maybe b, [a])
-splitFacts p xs = go [] xs []
-    where
-        go gs (x : xs) hs =
-            case p x of
-                result@(Just _) -> (gs, result, xs ++ hs)
-                _ -> go (gs ++ [x]) xs hs
-        go gs _ hs = (gs, Nothing, hs)
-
 data Fact =
     ISatisfies Expr
-    | IDoesNotSatisfy Expr
+    | IFalsifies Expr
     deriving (Eq, Show)
 
 contra :: Fact -> Fact
-contra (ISatisfies f) = IDoesNotSatisfy f
-contra (IDoesNotSatisfy f) = ISatisfies f
+contra (ISatisfies f) = IFalsifies f
+contra (IFalsifies f) = ISatisfies f
 
 data Conclusion =
     FactList [Fact]
     | Branch [Fact]
     deriving Show
-
---traceConclusion :: String -> A -> Maybe A
---traceConclusion ctx res = trace (printf "rule %s: %s" ctx (show res)) (Just res)
-traceConclusion :: String -> Conclusion -> Maybe Conclusion
-traceConclusion _ = Just . id
-
-matchFact :: Fact -> Maybe Conclusion
-matchFact (ISatisfies (Not f)) = traceConclusion "1" $
-    FactList [IDoesNotSatisfy f]
-matchFact (IDoesNotSatisfy (Not f)) = traceConclusion "2" $
-    FactList [ISatisfies f]
-matchFact (ISatisfies (And f1 f2)) = traceConclusion "3" $
-    FactList [ISatisfies f1, ISatisfies f2]
-matchFact (IDoesNotSatisfy (And f1 f2)) = traceConclusion "4" $
-    Branch [IDoesNotSatisfy f1, IDoesNotSatisfy f2]
-matchFact (ISatisfies (Or f1 f2)) = traceConclusion "5" $
-    Branch [ISatisfies f1, ISatisfies f2]
-matchFact (IDoesNotSatisfy (Or f1 f2)) = traceConclusion "6" $
-    FactList [IDoesNotSatisfy f1, IDoesNotSatisfy f2]
-matchFact (ISatisfies (Implies f1 f2)) = traceConclusion "7" $
-    Branch [IDoesNotSatisfy f1, ISatisfies f2]
-matchFact (IDoesNotSatisfy (Implies f1 f2)) = traceConclusion "8" $
-    FactList [ISatisfies f1, IDoesNotSatisfy f2]
-matchFact (ISatisfies (Equiv f1 f2)) = traceConclusion "9" $
-    Branch [ISatisfies (And f1 f2), IDoesNotSatisfy (Or f1 f2)]
-matchFact (IDoesNotSatisfy (Equiv f1 f2)) = traceConclusion "10" $
-    Branch [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
-matchFact _ = Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
@@ -147,19 +109,15 @@ data Deduction = Deduction
 
 deduceValid :: Expr -> Either Deduction Deduction
 deduceValid f =
-    let facts = [IDoesNotSatisfy f]
+    let facts = [IFalsifies f]
     in case runState (allClosed facts) (Deduction [] []) of
         (False, result) -> Left result
         (True, result) -> Right result
     where
         allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
-            case splitFacts matchFact facts of
-                (gs, Just (FactList fs), hs) ->
-                    allClosed (fs ++ gs ++ hs)
-                (gs, Just (Branch fs@(f1 : f2 : _)), hs) -> do
-                    let t = gs ++ hs
-                    all (== True) <$> sequence (map (allClosed . (: t)) fs)
+            case matchRule facts of
+                Just xyz -> xyz
                 _ ->
                     case findContradictions facts of
                         (c : _) -> do
@@ -170,3 +128,24 @@ deduceValid f =
                             d <- get
                             put $ d { models = facts : models d }
                             pure False
+
+        branch fs xs = all (== True) <$> sequence (map (allClosed . (: xs)) fs)
+
+        matchRule xs = go [] xs []
+            where
+                go gs (x : xs) hs =
+                    case rule x (gs ++ xs ++ hs) of
+                        result@(Just _) -> result
+                        _ -> go (gs ++ [x]) xs hs
+                go gs _ hs = Nothing
+                rule (ISatisfies (Not f)) = Just . allClosed . (IFalsifies f :)
+                rule (IFalsifies (Not f)) = Just . allClosed . (ISatisfies f :)
+                rule (ISatisfies (And f1 f2)) = Just . allClosed . ([ISatisfies f1, ISatisfies f2] ++)
+                rule (IFalsifies (And f1 f2)) = Just . branch [IFalsifies f1, IFalsifies f2]
+                rule (ISatisfies (Or f1 f2)) = Just . branch [ISatisfies f1, ISatisfies f2]
+                rule (IFalsifies (Or f1 f2)) = Just . allClosed . ([IFalsifies f1, IFalsifies f2] ++)
+                rule (ISatisfies (Implies f1 f2)) = Just . branch [IFalsifies f1, ISatisfies f2]
+                rule (IFalsifies (Implies f1 f2)) = Just . allClosed . ([ISatisfies f1, IFalsifies f2] ++)
+                rule (ISatisfies (Equiv f1 f2)) = Just . branch [ISatisfies (And f1 f2), IFalsifies (Or f1 f2)]
+                rule (IFalsifies (Equiv f1 f2)) = Just . branch [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
+                rule _ = const Nothing
