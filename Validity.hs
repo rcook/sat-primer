@@ -34,57 +34,6 @@ searchValid f =
         allSat (v : vs) i = and <$> allSat vs (extend v ValueFalse i) <*> allSat vs (extend v ValueTrue i)
         allSat [] i = evaluate f i
 
-
-{-
-data Foo = IDoesNotSatisfy Expr
-
-deduceValid :: Expr -> Maybe Value
-deduceValid f =
-    let facts = [IDoesNotSatisfy f]
-    in allClosed facts
-    where
-        --allClosed :: _ -> Maybe Value
-        allClosed facts
-            | 
--}
-{-
-(define (deduce-valid? f)
-  (let all-closed? ([facts `((I ⊭ ,f))])    ; assumption
-    (match facts
-      [`(,gs ... (I ⊨ (¬ ,f1)) ,hs ...)     ; (1)
-       (all-closed? `((I ⊭ ,f1) ,@gs ,@hs))]
-      [`(,gs ... (I ⊭ (¬ ,f1)) ,hs ...)     ; (2)
-       (all-closed? `((I ⊨ ,f1) ,@gs ,@hs))]
-      [`(,gs ... (I ⊨ (∧ ,fs ...)) ,hs ...) ; (3)
-       (all-closed? `(,@(for/list ([fi fs]) `(I ⊨ ,fi)) ,@gs ,@hs))]
-      [`(,gs ... (I ⊭ (∧ ,fs ...)) ,hs ...) ; (4)
-       (for/and ([fi fs])
-         (all-closed? `((I ⊭ ,fi) ,@gs ,@hs)))]
-      [`(,gs ... (I ⊨ (∨ ,fs ...)) ,hs ...) ; (5)
-       (for/and ([fi fs])
-         (all-closed? `((I ⊨ ,fi) ,@gs ,@hs)))]
-      [`(,gs ... (I ⊭ (∨ ,fs ...)) ,hs ...) ; (6)
-       (all-closed? `(,@(for/list ([fi fs]) `(I ⊭ ,fi)) ,@gs ,@hs))]
-      [`(,gs ... (I ⊨ (→ ,f1 ,f2)) ,hs ...) ; (7)
-       (and (all-closed? `((I ⊭ ,f1) ,@gs ,@hs))
-            (all-closed? `((I ⊨ ,f2) ,@gs ,@hs)))]
-      [`(,gs ... (I ⊭ (→ ,f1 ,f2)) ,hs ...) ; (8)
-       (all-closed? `((I ⊨ ,f1) (I ⊭ ,f2) ,@gs ,@hs))]
-      [`(,gs ... (I ⊨ (↔ ,f1 ,f2)) ,hs ...) ; (9)
-       (and (all-closed? `((I ⊨ (∧ ,f1 ,f2)) ,@gs ,@hs))
-            (all-closed? `((I ⊭ (∨ ,f1 ,f2)) ,@gs ,@hs)))]
-      [`(,gs ... (I ⊭ (↔ ,f1 ,f2)) ,hs ...) ; (10)
-       (and (all-closed? `((I ⊨ (∧ ,f1 (¬ ,f2))) ,@gs ,@hs))
-            (all-closed? `((I ⊨ (∧ (¬ ,f1) ,f2)) ,@gs ,@hs)))]
-      [(or `(,_ ... (I ⊨ ,fi) ,_ ... (I ⊭ ,fi) ,_ ...)
-           `(,_ ... (I ⊭ ,fi) ,_ ... (I ⊨ ,fi) ,_ ...))
-       (printf "Contradiction on ~a: ~a\n" fi facts)
-       #t]
-      [_
-       (printf "Open branch: ~a\n" facts)
-       #f])))
--}
-
 main :: IO ()
 main = do
     let x1 = Var (Name "x1")
