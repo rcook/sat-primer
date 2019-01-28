@@ -114,7 +114,6 @@ deduceValid f =
         (False, result) -> Left result
         (True, result) -> Right result
     where
-        allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
             case matchRule facts of
                 Just xyz -> xyz
