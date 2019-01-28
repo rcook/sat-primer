@@ -97,28 +97,28 @@ data Conclusion =
 traceConclusion :: String -> Conclusion -> Maybe Conclusion
 traceConclusion _ = Just . id
 
-matchRule :: Fact -> Maybe Conclusion
-matchRule (ISatisfies (Not f)) = traceConclusion "1" $
+matchFact :: Fact -> Maybe Conclusion
+matchFact (ISatisfies (Not f)) = traceConclusion "1" $
     OneFact (IDoesNotSatisfy f)
-matchRule (IDoesNotSatisfy (Not f)) = traceConclusion "2" $
+matchFact (IDoesNotSatisfy (Not f)) = traceConclusion "2" $
     OneFact (ISatisfies f)
-matchRule (ISatisfies (And f1 f2)) = traceConclusion "3" $
+matchFact (ISatisfies (And f1 f2)) = traceConclusion "3" $
     TwoFacts (ISatisfies f1) (ISatisfies f2)
-matchRule (IDoesNotSatisfy (And f1 f2)) = traceConclusion "4" $
+matchFact (IDoesNotSatisfy (And f1 f2)) = traceConclusion "4" $
     Branch (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
-matchRule (ISatisfies (Or f1 f2)) = traceConclusion "5" $
+matchFact (ISatisfies (Or f1 f2)) = traceConclusion "5" $
     Branch (ISatisfies f1) (ISatisfies f2)
-matchRule (IDoesNotSatisfy (Or f1 f2)) = traceConclusion "6" $
+matchFact (IDoesNotSatisfy (Or f1 f2)) = traceConclusion "6" $
     TwoFacts (IDoesNotSatisfy f1) (IDoesNotSatisfy f2)
-matchRule (ISatisfies (Implies f1 f2)) = traceConclusion "7" $
+matchFact (ISatisfies (Implies f1 f2)) = traceConclusion "7" $
     Branch (IDoesNotSatisfy f1) (ISatisfies f2)
-matchRule (IDoesNotSatisfy (Implies f1 f2)) = traceConclusion "8" $
+matchFact (IDoesNotSatisfy (Implies f1 f2)) = traceConclusion "8" $
     TwoFacts (ISatisfies f1) (IDoesNotSatisfy f2)
-matchRule (ISatisfies (Equiv f1 f2)) = traceConclusion "9" $
+matchFact (ISatisfies (Equiv f1 f2)) = traceConclusion "9" $
     Branch (ISatisfies (And f1 f2)) (IDoesNotSatisfy (Or f1 f2))
-matchRule (IDoesNotSatisfy (Equiv f1 f2)) = traceConclusion "10" $
+matchFact (IDoesNotSatisfy (Equiv f1 f2)) = traceConclusion "10" $
     Branch (ISatisfies (And f1 (Not f2))) (ISatisfies (And (Not f1) f2))
-matchRule _ = Nothing
+matchFact _ = Nothing
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
@@ -144,7 +144,7 @@ deduceValid f =
     where
         allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
-            case splitFacts matchRule facts of
+            case splitFacts matchFact facts of
                 (gs, Just (OneFact f), hs) ->
                     allClosed (f : gs ++ hs)
                 (gs, Just (TwoFacts f1 f2), hs) ->
