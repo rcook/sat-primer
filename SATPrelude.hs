@@ -23,6 +23,7 @@ module SATPrelude
     , foldl'
     , id
     , map
+    , nub
     , print
     , pure
     , putStrLn
@@ -30,4 +31,5 @@ module SATPrelude
     ) where
 
 import Data.Foldable (foldl')
+import Data.List (nub)
 import Prelude

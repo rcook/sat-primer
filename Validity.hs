@@ -8,40 +8,25 @@
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wincomplete-patterns #-}
+{-# OPTIONS_GHC -Wall #-}
 
 module Validity (main) where
 
-import Control.Monad.Trans.State.Strict (State, get, put, runState)
-import Data.List (nub)
+import Control.Monad.Trans.State.Strict
+    ( State
+    , get
+    , put
+    , runState
+    )
 import Test.Hspec
-import Text.Printf (printf)
-
-import Debug.Trace
+    ( describe
+    , hspec
+    , it
+    , shouldBe
+    )
 
 import SATPrelude
 import Semantics hiding (main)
-
-variables :: Expr -> [Name]
-variables f = nub (go f)
-    where
-        go ETrue = []
-        go EFalse = []
-        go (Var name) = [name]
-        go (Not f) = go f
-        go (And f1 f2) = go f1 ++ go f2
-        go (Or f1 f2) = go f1 ++ go f2
-        go (Implies f1 f2) = go f1 ++ go f2
-        go (Equiv f1 f2) = go f1 ++ go f2
-
-searchValid :: Expr -> Maybe Value
-searchValid f =
-    let vars = variables f
-        i = emptyInterpretation
-    in allSat vars i
-    where
-        allSat :: [Name] -> Interpretation -> Maybe Value
-        allSat (v : vs) i = and <$> allSat vs (extend v ValueFalse i) <*> allSat vs (extend v ValueTrue i)
-        allSat [] i = evaluate f i
 
 main :: IO ()
 main = hspec $ do
@@ -60,8 +45,8 @@ main = hspec $ do
             deduceValid (Implies (And x1 (Implies x1 x2)) x2)
                 `shouldBe` Right (Deduction
                     { contradictions =
-                        [ [ISatisfies (Var (Name "x2")), ISatisfies (Var (Name "x1")), IFalsifies (Var (Name "x2"))]
-                        , [IFalsifies (Var (Name "x1")), ISatisfies (Var (Name "x1")), IFalsifies (Var (Name "x2"))]
+                        [ [ISatisfies x2, ISatisfies x1, IFalsifies x2]
+                        , [IFalsifies x1, ISatisfies x1, IFalsifies x2]
                         ]
                     , models = []
                     })
@@ -69,14 +54,34 @@ main = hspec $ do
             deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
                 `shouldBe` Left (Deduction
                     { contradictions =
-                        [ [IFalsifies (Var (Name "x1")), ISatisfies (Var (Name "x1"))]
+                        [ [IFalsifies x1, ISatisfies x1]
                         ]
                     , models =
-                        [ [IFalsifies (Var (Name "x2")), IFalsifies (Var (Name "x2"))]
-                        , [IFalsifies (Var (Name "x1")), IFalsifies (Var (Name "x2"))]
-                        , [IFalsifies (Var (Name "x2")), ISatisfies (Var (Name "x1"))]
+                        [ [IFalsifies x2, IFalsifies x2]
+                        , [IFalsifies x1, IFalsifies x2]
+                        , [IFalsifies x2, ISatisfies x1]
                         ]
                     })
+
+variables :: Expr -> [Name]
+variables expr = nub (go expr)
+    where
+        go :: Expr -> [Name]
+        go ETrue = []
+        go EFalse = []
+        go (Var name) = [name]
+        go (Not e) = go e
+        go (And e1 e2) = go e1 ++ go e2
+        go (Or e1 e2) = go e1 ++ go e2
+        go (Implies e1 e2) = go e1 ++ go e2
+        go (Equiv e1 e2) = go e1 ++ go e2
+
+searchValid :: Expr -> Maybe Value
+searchValid expr = allSat (variables expr) emptyInterpretation
+    where
+        allSat :: [Name] -> Interpretation -> Maybe Value
+        allSat (v : vs) i = and <$> allSat vs (extend v ValueFalse i) <*> allSat vs (extend v ValueTrue i)
+        allSat [] i = evaluate expr i
 
 data Fact =
     ISatisfies Expr
@@ -86,11 +91,6 @@ data Fact =
 contra :: Fact -> Fact
 contra (ISatisfies f) = IFalsifies f
 contra (IFalsifies f) = ISatisfies f
-
-data Conclusion =
-    FactList [Fact]
-    | Branch [Fact]
-    deriving Show
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
@@ -108,26 +108,24 @@ data Deduction = Deduction
     } deriving (Eq, Show)
 
 deduceValid :: Expr -> Either Deduction Deduction
-deduceValid f =
-    let facts = [IFalsifies f]
-    in case runState (allClosed facts) (Deduction [] []) of
-        (False, result) -> Left result
-        (True, result) -> Right result
+deduceValid expr = case runState (allClosed [IFalsifies expr]) (Deduction [] []) of
+    (False, result) -> Left result
+    (True, result) -> Right result
     where
         allClosed :: [Fact] -> State Deduction Bool
         allClosed facts =
             case matchRule facts of
-                Just xyz -> xyz
+                Just p -> p
                 _ ->
                     case findContradictions facts of
-                        (c : _) -> do
-                            d <- get
-                            put $ d { contradictions = facts : contradictions d }
-                            pure True
                         [] -> do
                             d <- get
                             put $ d { models = facts : models d }
                             pure False
+                        _ -> do
+                            d <- get
+                            put $ d { contradictions = facts : contradictions d }
+                            pure True
 
         branch :: [Fact] -> [Fact] -> State Deduction Bool
         branch fs xs = all (== True) <$> sequence (map (allClosed . (: xs)) fs)
@@ -136,11 +134,11 @@ deduceValid f =
         matchRule xs = go [] xs []
             where
                 go :: [Fact] -> [Fact] -> [Fact] -> Maybe (State Deduction Bool)
-                go gs (x : xs) hs =
-                    case rule x (gs ++ xs ++ hs) of
+                go gs (y : ys) hs =
+                    case rule y (gs ++ ys ++ hs) of
                         result@(Just _) -> result
-                        _ -> go (gs ++ [x]) xs hs
-                go gs _ hs = Nothing
+                        _ -> go (gs ++ [y]) ys hs
+                go _ _ _ = Nothing
 
                 rule :: Fact -> [Fact] -> Maybe (State Deduction Bool)
                 rule (ISatisfies (Not f)) = Just . allClosed . (IFalsifies f :)
