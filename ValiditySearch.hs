@@ -21,9 +21,9 @@ variables expr = nub (go expr)
         go (Implies e1 e2) = go e1 ++ go e2
         go (Equiv e1 e2) = go e1 ++ go e2
 
-searchValid :: Expr -> Maybe Value
+searchValid :: Expr -> Maybe Bool
 searchValid expr = allSat (variables expr) emptyInterpretation
     where
-        allSat :: [Name] -> Interpretation -> Maybe Value
-        allSat (v : vs) i = and <$> allSat vs (extend v ValueFalse i) <*> allSat vs (extend v ValueTrue i)
+        allSat :: [Name] -> Interpretation -> Maybe Bool
+        allSat (v : vs) i = (&&) <$> allSat vs (extend v False i) <*> allSat vs (extend v True i)
         allSat [] i = evaluate expr i

@@ -23,11 +23,11 @@ main = hspec $ do
     describe "searchValid" $
         it "searches successfully" $ do
             searchValid (Implies (And x1 x2) (Or x1 (Not x2)))
-                `shouldBe` Just ValueTrue
+                `shouldBe` Just True
             searchValid (Implies (Or x1 (Not x2)) (And x1 x2))
-                `shouldBe` Just ValueFalse
+                `shouldBe` Just False
             searchValid (Implies (And x1 (Implies x1 x2)) x2)
-                `shouldBe` Just ValueTrue
+                `shouldBe` Just True
     describe "deduceValid" $ do
         it "proves formula" $
             deduceValid (Implies (And x1 (Implies x1 x2)) x2)
