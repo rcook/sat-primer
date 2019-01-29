@@ -20,7 +20,8 @@ import Test.Hspec
 
 import SATPrelude
 import Semantics
-import Validity
+import ValidityDeduce
+import ValiditySearch
 
 main :: IO ()
 main = hspec $ do
