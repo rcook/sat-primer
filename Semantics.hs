@@ -33,8 +33,7 @@ extend :: Name -> Bool -> Interpretation -> Interpretation
 extend = Map.insert
 
 data Expr =
-    ETrue
-    | EFalse
+    Lit Bool
     | Var Name
     | Not Expr
     | And Expr Expr
@@ -46,8 +45,7 @@ data Expr =
 -- | Return true if interpretation satisfies expression, false if interpretation
 -- does not satisfy expression.
 evaluate :: Expr -> Interpretation -> Maybe Bool
-evaluate ETrue _ = Just $ True
-evaluate EFalse _ = Just $ False
+evaluate (Lit value) _ = Just value
 evaluate (Var name) i = lookup name i
 evaluate (Not f) i = not <$> evaluate f i
 evaluate (And f1 f2) i = (&&) <$> evaluate f1 i <*> evaluate f2 i

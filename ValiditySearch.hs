@@ -12,8 +12,7 @@ variables :: Expr -> [Name]
 variables expr = nub (go expr)
     where
         go :: Expr -> [Name]
-        go ETrue = []
-        go EFalse = []
+        go (Lit _) = []
         go (Var name) = [name]
         go (Not e) = go e
         go (And e1 e2) = go e1 ++ go e2
