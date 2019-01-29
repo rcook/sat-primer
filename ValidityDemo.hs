@@ -11,13 +11,6 @@
 
 module ValidityDemo (main) where
 
-import Test.Hspec
-    ( describe
-    , hspec
-    , it
-    , shouldBe
-    )
-
 import SATPrelude
 import Semantics
 import ValidityDeduce
