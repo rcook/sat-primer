@@ -1,6 +1,7 @@
 #!/usr/bin/env stack
-{- stack --resolver=lts-12.6 script
-    --package containers
+{-
+    stack --resolver=lts-12.6 script
+        --package containers
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
