@@ -9,7 +9,7 @@ In which we will write a simple Boolean satisfiability solver in Haskell from sc
 
 ## Licence
 
-Code in this project (except the samples from [Emina Torlak][sat-primer]'s article are released under the [MIT License](LICENSE)
+Code in this project (except the samples from [Emina Torlak][sat-primer]'s article) are released under the [MIT License](LICENSE)
 
 [sat-primer]: https://homes.cs.washington.edu/~emina/blog/2017-06-23-a-primer-on-sat.html
 [truth-tables]: http://sites.millersville.edu/bikenaga/math-proof/truth-tables/truth-tables.html
