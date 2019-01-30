@@ -1,5 +1,7 @@
 # Write You a SAT Solver for Great Good!
 
+In which we will write a simple Boolean satisfiability solver in Haskell from scratch
+
 ## Resources
 
 * [Emina Torlak's SAT primer article][sat-primer]
