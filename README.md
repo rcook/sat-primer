@@ -5,7 +5,7 @@ In which we will write a simple Boolean satisfiability solver in Haskell from sc
 ## Resources
 
 * [Emina Torlak's SAT primer article][sat-primer]
-* [Calculations of Computation][calculus-of-computation]
+* [Calculus of Computation][calculus-of-computation]
 * [Truth tables][truth-tables]
 
 ## Licence
