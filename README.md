@@ -1,14 +1,13 @@
-# Links
+# Write You a SAT Solver for Great Good!
 
-## Emina Torlak's course
+## Resources
 
-* https://homes.cs.washington.edu/~emina/blog/2017-06-23-a-primer-on-sat.html
-* https://homes.cs.washington.edu/~emina/media/sat/code.html
+* [Emina Torlak's SAT primer article][sat-primer]
+* [Truth tables][truth-tables]
 
-## Truth tables etc.
+## Licence
 
-* http://sites.millersville.edu/bikenaga/math-proof/truth-tables/truth-tables.html
+Code in this project (except the samples from [Emina Torlak][sat-primer]'s article are released under the [MIT License](LICENSE)
 
-## Errata
-
-* Under _Proof rules for propositional logic_: "by 5 and (9)" should be "by 5 and (7)"
+[sat-primer]: https://homes.cs.washington.edu/~emina/blog/2017-06-23-a-primer-on-sat.html
+[truth-tables]: http://sites.millersville.edu/bikenaga/math-proof/truth-tables/truth-tables.html
