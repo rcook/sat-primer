@@ -11,10 +11,10 @@
 
 module SATDemo (main) where
 
+import PrettyOps
 import SATPrelude
 import Semantics
 import ValiditySearch
-
 
 var :: String -> Expr
 var = Var . Name
@@ -25,12 +25,12 @@ main = hspec $ do
         it "finds example 1 satisfiable" $ do
             let p = var "p"
                 q = var "q"
-                expr = (p `Or` q) `And` (Not p `Or` Not q) `And` (p `Or` Not q)
-            expr `shouldBe` And (And (Or (Var (Name "p")) (Var (Name "q"))) (Or (Not (Var (Name "p"))) (Not (Var (Name "q"))))) (Or (Var (Name "p")) (Not (Var (Name "q"))))
+                expr = (p ∨ q) ∧ ((¬) p ∨ (¬) q) ∧ (p ∨ (¬) q)
+            expr `shouldBe` And (Or (Var (Name "p")) (Var (Name "q"))) (And (Or (Not (Var (Name "p"))) (Not (Var (Name "q")))) (Or (Var (Name "p")) (Not (Var (Name "q")))))
             searchSat expr `shouldBe` Just True
         it "finds example 2 unsatisfiable" $ do
             let p = var "p"
                 q = var "q"
-                expr = (p `Or` q) `And` (Not p `Or` Not q) `And` (Not p `Or` q) `And` (p `Or` Not q)
-            expr `shouldBe` And (And (And (Or (Var (Name "p")) (Var (Name "q"))) (Or (Not (Var (Name "p"))) (Not (Var (Name "q"))))) (Or (Not (Var (Name "p"))) (Var (Name "q")))) (Or (Var (Name "p")) (Not (Var (Name "q"))))
+                expr = (p ∨ q) ∧ ((¬) p ∨ (¬) q) ∧ ((¬) p ∨ q) ∧ (p ∨ (¬) q)
+            expr `shouldBe` And (Or (Var (Name "p")) (Var (Name "q"))) (And (Or (Not (Var (Name "p"))) (Not (Var (Name "q")))) (And (Or (Not (Var (Name "p"))) (Var (Name "q"))) (Or (Var (Name "p")) (Not (Var (Name "q"))))))
             searchSat expr `shouldBe` Just False
