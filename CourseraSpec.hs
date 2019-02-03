@@ -3,6 +3,7 @@
     stack --resolver=lts-12.6 script
         --package containers
         --package hspec
+        --package process
         --package transformers
 -}
 
@@ -16,7 +17,9 @@ module CourseraSpec (main) where
 import PrettyOps
 import SATPrelude
 import Semantics
+import SmtLib2
 import ValiditySearch
+import Z3
 
 var :: String -> Expr
 var = Var . Name
@@ -43,3 +46,14 @@ main = hspec $ do
                 expr = (¬) ((p ∧ q) `Implies` (p ∨ r))
             expr `shouldBe` Not (Implies (And (Var (Name "p")) (Var (Name "q"))) (Or (Var (Name "p")) (Var (Name "r"))))
             searchSat expr `shouldBe` Just False
+    describe "toSmtLib2" $
+        it "works" $ do
+            let ctx0 = emptyContext
+                (a, ctx1) = declareConst ctx0 "a" "bool"
+                (b, ctx2) = declareConst ctx1 "b" "bool"
+                (c, ctx3) = declareConst ctx2 "c" "bool"
+                (d, ctx4) = declareConst ctx3 "d" "bool"
+                expr = (a `Equiv` (d ∧ b)) ∧ (c `Implies` b) ∧ (¬) (a ∨ b ∨ (¬) d) ∧ (((¬) a ∧ c) ∨ d)
+                script = toSmtLib2 ctx4 expr
+            result <- checkWithZ3 script
+            "sat" `isPrefixOf` result `shouldBe` True

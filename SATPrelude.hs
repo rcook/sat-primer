@@ -25,11 +25,13 @@ module SATPrelude
     , foldl'
     , hspec
     , id
+    , isPrefixOf
     , it
     , map
     , not
     , nub
     , print
+    , printf
     , pure
     , putStrLn
     , sequence
@@ -37,7 +39,7 @@ module SATPrelude
     ) where
 
 import Data.Foldable (foldl')
-import Data.List (nub)
+import Data.List (isPrefixOf, nub)
 import Prelude
 import Test.Hspec
     ( describe
@@ -45,3 +47,4 @@ import Test.Hspec
     , it
     , shouldBe
     )
+import Text.Printf (printf)
