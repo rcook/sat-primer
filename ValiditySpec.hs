@@ -9,7 +9,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
-module ValidityDemo (main) where
+module ValiditySpec (main) where
 
 import SATPrelude
 import Semantics

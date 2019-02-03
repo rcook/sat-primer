@@ -9,7 +9,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
-module SATDemo (main) where
+-- Examples from https://www.coursera.org/learn/automated-reasoning-sat
+
+module CourseraSpec (main) where
 
 import PrettyOps
 import SATPrelude
@@ -21,7 +23,7 @@ var = Var . Name
 
 main :: IO ()
 main = hspec $ do
-    describe "examples from https://www.coursera.org/learn/automated-reasoning-sat week 1" $ do
+    describe "week 1" $ do
         it "finds example 1 satisfiable" $ do
             let p = var "p"
                 q = var "q"

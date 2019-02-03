@@ -8,7 +8,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
-module SemanticsDemo (main) where
+module SemanticsSpec (main) where
 
 import SATPrelude
 import Semantics
