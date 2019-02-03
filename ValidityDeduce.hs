@@ -87,6 +87,7 @@ deduceValid expr = case runState (allClosed [IFalsifies expr]) (Deduction [] [])
                 rule (IFalsifies (Equiv f1 f2)) = Just . branch [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
                 rule _ = const Nothing
 
+{-
 -- | 'breakOnJust', applied to a function @f@ and a list @xs@, returns a triple
 -- where the first element is the prefix (possibly empty) of @xs@ of elements
 -- for which the function @f@ evaluates to @Nothing@, the second element is the
@@ -127,3 +128,4 @@ allClosed' fs =
             case findContradictions fs of
                 [] -> False
                 _ -> True
+-}

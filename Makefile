@@ -1,4 +1,5 @@
 .PHONY: all
 all:
-	./SemanticsDemo.hs
-	./ValidityDemo.hs
+	./CourseraSpec.hs
+	./SemanticsSpec.hs
+	./ValiditySpec.hs
