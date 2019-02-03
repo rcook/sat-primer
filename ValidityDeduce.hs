@@ -2,8 +2,8 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module ValidityDeduce
-    ( Deduction(..)
-    , Fact(..)
+    ( Fact(..)
+    , Result(..)
     , deduceValid
     ) where
 
@@ -18,13 +18,13 @@ import SATPrelude
 import Semantics
 
 data Fact =
-    ISatisfies Expr
-    | IFalsifies Expr
+    Satisfies Expr
+    | Falsifies Expr
     deriving (Eq, Show)
 
 contra :: Fact -> Fact
-contra (ISatisfies f) = IFalsifies f
-contra (IFalsifies f) = ISatisfies f
+contra (Satisfies f) = Falsifies f
+contra (Falsifies f) = Satisfies f
 
 hasContradiction :: Fact -> [Fact] -> Bool
 hasContradiction = elem . contra
@@ -36,13 +36,13 @@ findContradictions fs =
         []
         fs
 
-data Deduction = Deduction
+data Result = Result
     { contradictions :: [[Fact]]
     , models :: [[Fact]]
     } deriving (Eq, Show)
 
-deduceValid :: Expr -> Either Deduction Deduction
-deduceValid expr = case runState (allClosed [IFalsifies expr]) (Deduction [] []) of
+deduceValid :: Expr -> Either Result Result
+deduceValid expr = case runState (allClosed [Falsifies expr]) (Result [] []) of
     (False, result) -> Left result
     (True, result) -> Right result
 
@@ -62,25 +62,25 @@ breakOnJust f (x : xs) =
         result@(Just _) -> ([], result, xs)
         _ -> let (gs, result, hs) = breakOnJust f xs in (x : gs, result, hs)
 
-data Deduction2 = DeductionAnd [Fact] | DeductionFork [Fact]
+data Deduction = DeductionAnd [Fact] | DeductionFork [Fact]
 
 -- | Proof rules mapping premises to deductions
 proofRule ::
     Fact                -- ^ premise
-    -> Maybe Deduction2 -- ^ deduction
-proofRule (ISatisfies (Not f)) = Just $ DeductionAnd [IFalsifies f]
-proofRule (IFalsifies (Not f)) = Just  $ DeductionAnd [ISatisfies f]
-proofRule (ISatisfies (And f1 f2)) = Just $ DeductionAnd [ISatisfies f1, ISatisfies f2]
-proofRule (IFalsifies (And f1 f2)) = Just $ DeductionFork [IFalsifies f1, IFalsifies f2]
-proofRule (ISatisfies (Or f1 f2)) = Just $ DeductionFork [ISatisfies f1, ISatisfies f2]
-proofRule (IFalsifies (Or f1 f2)) = Just $ DeductionAnd [IFalsifies f1, IFalsifies f2]
-proofRule (ISatisfies (Implies f1 f2)) = Just $ DeductionFork [IFalsifies f1, ISatisfies f2]
-proofRule (IFalsifies (Implies f1 f2)) = Just $ DeductionAnd [ISatisfies f1, IFalsifies f2]
-proofRule (ISatisfies (Equiv f1 f2)) = Just $ DeductionFork [ISatisfies (And f1 f2), IFalsifies (Or f1 f2)]
-proofRule (IFalsifies (Equiv f1 f2)) = Just $ DeductionFork [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
+    -> Maybe Deduction  -- ^ deduction
+proofRule (Satisfies (Not f)) = Just $ DeductionAnd [Falsifies f]
+proofRule (Falsifies (Not f)) = Just  $ DeductionAnd [Satisfies f]
+proofRule (Satisfies (And f1 f2)) = Just $ DeductionAnd [Satisfies f1, Satisfies f2]
+proofRule (Falsifies (And f1 f2)) = Just $ DeductionFork [Falsifies f1, Falsifies f2]
+proofRule (Satisfies (Or f1 f2)) = Just $ DeductionFork [Satisfies f1, Satisfies f2]
+proofRule (Falsifies (Or f1 f2)) = Just $ DeductionAnd [Falsifies f1, Falsifies f2]
+proofRule (Satisfies (Implies f1 f2)) = Just $ DeductionFork [Falsifies f1, Satisfies f2]
+proofRule (Falsifies (Implies f1 f2)) = Just $ DeductionAnd [Satisfies f1, Falsifies f2]
+proofRule (Satisfies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And f1 f2), Falsifies (Or f1 f2)]
+proofRule (Falsifies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And f1 (Not f2)), Satisfies (And (Not f1) f2)]
 proofRule _ = Nothing
 
-allClosed :: [Fact] -> State Deduction Bool
+allClosed :: [Fact] -> State Result Bool
 allClosed facts =
     case breakOnJust proofRule facts of
         (gs, Just (DeductionAnd fs'), hs) -> allClosed (fs' ++ gs ++ hs)

@@ -31,22 +31,22 @@ main = hspec $ do
     describe "deduceValid" $ do
         it "proves formula" $
             deduceValid (Implies (And x1 (Implies x1 x2)) x2)
-                `shouldBe` Right (Deduction
+                `shouldBe` Right (Result
                     { contradictions =
-                        [ [ISatisfies x2, ISatisfies x1, IFalsifies x2]
-                        , [IFalsifies x1, ISatisfies x1, IFalsifies x2]
+                        [ [Satisfies x2, Satisfies x1, Falsifies x2]
+                        , [Falsifies x1, Satisfies x1, Falsifies x2]
                         ]
                     , models = []
                     })
         it "disproves formula" $
             deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
-                `shouldBe` Left (Deduction
+                `shouldBe` Left (Result
                     { contradictions =
-                        [ [IFalsifies x1, ISatisfies x1]
+                        [ [Falsifies x1, Satisfies x1]
                         ]
                     , models =
-                        [ [IFalsifies x2, IFalsifies x2]
-                        , [IFalsifies x1, IFalsifies x2]
-                        , [IFalsifies x2, ISatisfies x1]
+                        [ [Falsifies x2, Falsifies x2]
+                        , [Falsifies x1, Falsifies x2]
+                        , [Falsifies x2, Satisfies x1]
                         ]
                     })
