@@ -2,7 +2,8 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module ValiditySearch
-    ( searchValid
+    ( searchSat
+    , searchValid
     ) where
 
 import SATPrelude
@@ -20,6 +21,10 @@ variables expr = nub (go expr)
         go (Implies e1 e2) = go e1 ++ go e2
         go (Equiv e1 e2) = go e1 ++ go e2
 
+searchSat :: Expr -> Maybe Bool
+searchSat expr = not <$> searchValid (Not expr)
+
+-- Truth table method
 searchValid :: Expr -> Maybe Bool
 searchValid expr = allSat (variables expr) emptyInterpretation
     where
