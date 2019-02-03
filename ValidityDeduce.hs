@@ -45,49 +45,7 @@ deduceValid :: Expr -> Either Deduction Deduction
 deduceValid expr = case runState (allClosed [IFalsifies expr]) (Deduction [] []) of
     (False, result) -> Left result
     (True, result) -> Right result
-    where
-        allClosed :: [Fact] -> State Deduction Bool
-        allClosed facts =
-            case matchRule facts of
-                Just p -> p
-                _ ->
-                    case findContradictions facts of
-                        [] -> do
-                            d <- get
-                            put $ d { models = facts : models d }
-                            pure False
-                        _ -> do
-                            d <- get
-                            put $ d { contradictions = facts : contradictions d }
-                            pure True
 
-        branch :: [Fact] -> [Fact] -> State Deduction Bool
-        branch fs xs = all (== True) <$> sequence (map (allClosed . (: xs)) fs)
-
-        matchRule :: [Fact] -> Maybe (State Deduction Bool)
-        matchRule xs = go [] xs []
-            where
-                go :: [Fact] -> [Fact] -> [Fact] -> Maybe (State Deduction Bool)
-                go gs (y : ys) hs =
-                    case rule y (gs ++ ys ++ hs) of
-                        result@(Just _) -> result
-                        _ -> go (gs ++ [y]) ys hs
-                go _ _ _ = Nothing
-
-                rule :: Fact -> [Fact] -> Maybe (State Deduction Bool)
-                rule (ISatisfies (Not f)) = Just . allClosed . (IFalsifies f :)
-                rule (IFalsifies (Not f)) = Just . allClosed . (ISatisfies f :)
-                rule (ISatisfies (And f1 f2)) = Just . allClosed . ([ISatisfies f1, ISatisfies f2] ++)
-                rule (IFalsifies (And f1 f2)) = Just . branch [IFalsifies f1, IFalsifies f2]
-                rule (ISatisfies (Or f1 f2)) = Just . branch [ISatisfies f1, ISatisfies f2]
-                rule (IFalsifies (Or f1 f2)) = Just . allClosed . ([IFalsifies f1, IFalsifies f2] ++)
-                rule (ISatisfies (Implies f1 f2)) = Just . branch [IFalsifies f1, ISatisfies f2]
-                rule (IFalsifies (Implies f1 f2)) = Just . allClosed . ([ISatisfies f1, IFalsifies f2] ++)
-                rule (ISatisfies (Equiv f1 f2)) = Just . branch [ISatisfies (And f1 f2), IFalsifies (Or f1 f2)]
-                rule (IFalsifies (Equiv f1 f2)) = Just . branch [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
-                rule _ = const Nothing
-
-{-
 -- | 'breakOnJust', applied to a function @f@ and a list @xs@, returns a triple
 -- where the first element is the prefix (possibly empty) of @xs@ of elements
 -- for which the function @f@ evaluates to @Nothing@, the second element is the
@@ -104,28 +62,36 @@ breakOnJust f (x : xs) =
         result@(Just _) -> ([], result, xs)
         _ -> let (gs, result, hs) = breakOnJust f xs in (x : gs, result, hs)
 
-data Conclusion = CAnd [Fact] | CBranch [Fact]
+data Deduction2 = DeductionAnd [Fact] | DeductionFork [Fact]
 
-prule :: Fact -> Maybe Conclusion
-prule (ISatisfies (Not f)) = Just $ CAnd [IFalsifies f]
-prule (IFalsifies (Not f)) = Just  $ CAnd [ISatisfies f]
-prule (ISatisfies (And f1 f2)) = Just $ CAnd [ISatisfies f1, ISatisfies f2]
-prule (IFalsifies (And f1 f2)) = Just $ CBranch [IFalsifies f1, IFalsifies f2]
-prule (ISatisfies (Or f1 f2)) = Just $ CBranch [ISatisfies f1, ISatisfies f2]
-prule (IFalsifies (Or f1 f2)) = Just $ CAnd [IFalsifies f1, IFalsifies f2]
-prule (ISatisfies (Implies f1 f2)) = Just $ CBranch [IFalsifies f1, ISatisfies f2]
-prule (IFalsifies (Implies f1 f2)) = Just $ CAnd [ISatisfies f1, IFalsifies f2]
-prule (ISatisfies (Equiv f1 f2)) = Just $ CBranch [ISatisfies (And f1 f2), IFalsifies (Or f1 f2)]
-prule (IFalsifies (Equiv f1 f2)) = Just $ CBranch [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
-prule _ = Nothing
+-- | Proof rules mapping premises to deductions
+proofRule ::
+    Fact                -- ^ premise
+    -> Maybe Deduction2 -- ^ deduction
+proofRule (ISatisfies (Not f)) = Just $ DeductionAnd [IFalsifies f]
+proofRule (IFalsifies (Not f)) = Just  $ DeductionAnd [ISatisfies f]
+proofRule (ISatisfies (And f1 f2)) = Just $ DeductionAnd [ISatisfies f1, ISatisfies f2]
+proofRule (IFalsifies (And f1 f2)) = Just $ DeductionFork [IFalsifies f1, IFalsifies f2]
+proofRule (ISatisfies (Or f1 f2)) = Just $ DeductionFork [ISatisfies f1, ISatisfies f2]
+proofRule (IFalsifies (Or f1 f2)) = Just $ DeductionAnd [IFalsifies f1, IFalsifies f2]
+proofRule (ISatisfies (Implies f1 f2)) = Just $ DeductionFork [IFalsifies f1, ISatisfies f2]
+proofRule (IFalsifies (Implies f1 f2)) = Just $ DeductionAnd [ISatisfies f1, IFalsifies f2]
+proofRule (ISatisfies (Equiv f1 f2)) = Just $ DeductionFork [ISatisfies (And f1 f2), IFalsifies (Or f1 f2)]
+proofRule (IFalsifies (Equiv f1 f2)) = Just $ DeductionFork [ISatisfies (And f1 (Not f2)), ISatisfies (And (Not f1) f2)]
+proofRule _ = Nothing
 
-allClosed' :: [Fact] -> Bool
-allClosed' fs =
-    case breakOnJust prule fs of
-        (gs, Just (CAnd fs'), hs) -> allClosed' (fs' ++ gs ++ hs)
-        (gs, Just (CBranch fs'), hs) -> all (== True) (map (\f -> allClosed' (f : gs ++ hs)) fs')
-        (gs, Nothing, hs) ->
-            case findContradictions fs of
-                [] -> False
-                _ -> True
--}
+allClosed :: [Fact] -> State Deduction Bool
+allClosed facts =
+    case breakOnJust proofRule facts of
+        (gs, Just (DeductionAnd fs'), hs) -> allClosed (fs' ++ gs ++ hs)
+        (gs, Just (DeductionFork fs'), hs) -> all (== True) <$> sequence (map (\f -> allClosed (f : gs ++ hs)) fs')
+        (_, Nothing, _) ->
+            case findContradictions facts of
+                [] -> do
+                    d <- get
+                    put $ d { models = facts : models d }
+                    pure False
+                _ -> do
+                    d <- get
+                    put $ d { contradictions = facts : contradictions d }
+                    pure True
