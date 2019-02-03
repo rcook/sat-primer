@@ -17,24 +17,13 @@ import Control.Monad.Trans.State.Strict
 import SATPrelude
 import Semantics
 
+-- | Validation monad
+type Validation a = State Result a
+
 data Fact =
     Satisfies Expr
     | Falsifies Expr
     deriving (Eq, Show)
-
-contra :: Fact -> Fact
-contra (Satisfies f) = Falsifies f
-contra (Falsifies f) = Satisfies f
-
-hasContradiction :: Fact -> [Fact] -> Bool
-hasContradiction = elem . contra
-
-findContradictions :: [Fact] -> [Fact]
-findContradictions fs =
-    foldl'
-        (\cs f -> if hasContradiction f fs then f : cs else cs)
-        []
-        fs
 
 data Result = Result
     { contradictions :: [[Fact]]
@@ -64,6 +53,36 @@ breakOnJust f (x : xs) =
 
 data Deduction = DeductionAnd [Fact] | DeductionFork [Fact]
 
+allClosed :: [Fact] -> Validation Bool
+allClosed facts =
+    case breakOnJust proofRule facts of
+        (gs, Just (DeductionAnd fs'), hs) -> allClosed (fs' ++ gs ++ hs)
+        (gs, Just (DeductionFork fs'), hs) -> all (== True) <$> sequence (map (\f -> allClosed (f : gs ++ hs)) fs')
+        (_, Nothing, _) ->
+            case findContradictions facts of
+                [] -> do
+                    d <- get
+                    put $ d { models = facts : models d }
+                    pure False
+                _ -> do
+                    d <- get
+                    put $ d { contradictions = facts : contradictions d }
+                    pure True
+
+contra :: Fact -> Fact
+contra (Satisfies f) = Falsifies f
+contra (Falsifies f) = Satisfies f
+
+hasContradiction :: Fact -> [Fact] -> Bool
+hasContradiction = elem . contra
+
+findContradictions :: [Fact] -> [Fact]
+findContradictions fs =
+    foldl'
+        (\cs f -> if hasContradiction f fs then f : cs else cs)
+        []
+        fs
+
 -- | Proof rules mapping premises to deductions
 proofRule ::
     Fact                -- ^ premise
@@ -79,19 +98,3 @@ proofRule (Falsifies (Implies f1 f2)) = Just $ DeductionAnd [Satisfies f1, Falsi
 proofRule (Satisfies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And f1 f2), Falsifies (Or f1 f2)]
 proofRule (Falsifies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And f1 (Not f2)), Satisfies (And (Not f1) f2)]
 proofRule _ = Nothing
-
-allClosed :: [Fact] -> State Result Bool
-allClosed facts =
-    case breakOnJust proofRule facts of
-        (gs, Just (DeductionAnd fs'), hs) -> allClosed (fs' ++ gs ++ hs)
-        (gs, Just (DeductionFork fs'), hs) -> all (== True) <$> sequence (map (\f -> allClosed (f : gs ++ hs)) fs')
-        (_, Nothing, _) ->
-            case findContradictions facts of
-                [] -> do
-                    d <- get
-                    put $ d { models = facts : models d }
-                    pure False
-                _ -> do
-                    d <- get
-                    put $ d { contradictions = facts : contradictions d }
-                    pure True
