@@ -11,9 +11,9 @@ import Semantics
 (¬) = Not
 
 (∧) :: Expr -> Expr -> Expr
-(∧) = And
+a ∧ b = And [a, b]
 infixr 3 ∧
 
 (∨) :: Expr -> Expr -> Expr
-(∨) = Or
+a ∨ b = Or [a, b]
 infixr 2 ∨

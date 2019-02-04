@@ -89,12 +89,12 @@ proofRule ::
     -> Maybe Deduction  -- ^ deduction
 proofRule (Satisfies (Not f)) = Just $ DeductionAnd [Falsifies f]
 proofRule (Falsifies (Not f)) = Just  $ DeductionAnd [Satisfies f]
-proofRule (Satisfies (And f1 f2)) = Just $ DeductionAnd [Satisfies f1, Satisfies f2]
-proofRule (Falsifies (And f1 f2)) = Just $ DeductionFork [Falsifies f1, Falsifies f2]
-proofRule (Satisfies (Or f1 f2)) = Just $ DeductionFork [Satisfies f1, Satisfies f2]
-proofRule (Falsifies (Or f1 f2)) = Just $ DeductionAnd [Falsifies f1, Falsifies f2]
+proofRule (Satisfies (And fs)) = Just $ DeductionAnd (map Satisfies fs)
+proofRule (Falsifies (And fs)) = Just $ DeductionFork (map Falsifies fs)
+proofRule (Satisfies (Or fs)) = Just $ DeductionFork (map Satisfies fs)
+proofRule (Falsifies (Or fs)) = Just $ DeductionAnd (map Falsifies fs)
 proofRule (Satisfies (Implies f1 f2)) = Just $ DeductionFork [Falsifies f1, Satisfies f2]
 proofRule (Falsifies (Implies f1 f2)) = Just $ DeductionAnd [Satisfies f1, Falsifies f2]
-proofRule (Satisfies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And f1 f2), Falsifies (Or f1 f2)]
-proofRule (Falsifies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And f1 (Not f2)), Satisfies (And (Not f1) f2)]
+proofRule (Satisfies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And [f1, f2]), Falsifies (Or [f1, f2])]
+proofRule (Falsifies (Equiv f1 f2)) = Just $ DeductionFork [Satisfies (And [f1, Not f2]), Satisfies (And [Not f1, f2])]
 proofRule _ = Nothing

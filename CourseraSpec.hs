@@ -31,20 +31,20 @@ main = hspec $ do
             let p = var "p"
                 q = var "q"
                 expr = (p ∨ q) ∧ ((¬) p ∨ (¬) q) ∧ (p ∨ (¬) q)
-            expr `shouldBe` And (Or (Var (Name "p")) (Var (Name "q"))) (And (Or (Not (Var (Name "p"))) (Not (Var (Name "q")))) (Or (Var (Name "p")) (Not (Var (Name "q")))))
+            expr `shouldBe` And [Or [Var (Name "p"), Var (Name "q")], And [Or [Not (Var (Name "p")), Not (Var (Name "q"))], Or [Var (Name "p"), Not (Var (Name "q"))]]]
             searchSat expr `shouldBe` Just True
         it "finds example 2 unsatisfiable" $ do
             let p = var "p"
                 q = var "q"
                 expr = (p ∨ q) ∧ ((¬) p ∨ (¬) q) ∧ ((¬) p ∨ q) ∧ (p ∨ (¬) q)
-            expr `shouldBe` And (Or (Var (Name "p")) (Var (Name "q"))) (And (Or (Not (Var (Name "p"))) (Not (Var (Name "q")))) (And (Or (Not (Var (Name "p"))) (Var (Name "q"))) (Or (Var (Name "p")) (Not (Var (Name "q"))))))
+            expr `shouldBe` And [Or [Var (Name "p"), Var (Name "q")], And [Or [Not (Var (Name "p")), Not (Var (Name "q"))], And [Or [Not (Var (Name "p")), Var (Name "q")], Or [Var (Name "p"), Not (Var (Name "q"))]]]]
             searchSat expr `shouldBe` Just False
         it "finds example 3 unsatisfiable" $ do
             let p = var "p"
                 q = var "q"
                 r = var "r"
                 expr = (¬) ((p ∧ q) `Implies` (p ∨ r))
-            expr `shouldBe` Not (Implies (And (Var (Name "p")) (Var (Name "q"))) (Or (Var (Name "p")) (Var (Name "r"))))
+            expr `shouldBe` Not (Implies (And [Var (Name "p"), Var (Name "q")]) (Or [Var (Name "p"), Var (Name "r")]))
             searchSat expr `shouldBe` Just False
     describe "toSmtLib2" $
         it "works" $ do

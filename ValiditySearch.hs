@@ -15,11 +15,11 @@ variables expr = nub (go expr)
         go :: Expr -> [Name]
         go (Lit _) = []
         go (Var name) = [name]
-        go (Not e) = go e
-        go (And e1 e2) = go e1 ++ go e2
-        go (Or e1 e2) = go e1 ++ go e2
-        go (Implies e1 e2) = go e1 ++ go e2
-        go (Equiv e1 e2) = go e1 ++ go e2
+        go (Not f) = go f
+        go (And fs) = concatMap go fs
+        go (Or fs) = concatMap go fs
+        go (Implies f1 f2) = go f1 ++ go f2
+        go (Equiv f1 f2) = go f1 ++ go f2
 
 searchSat :: Expr -> Maybe Bool
 searchSat expr = not <$> searchValid (Not expr)

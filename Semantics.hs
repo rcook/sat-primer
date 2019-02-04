@@ -36,8 +36,8 @@ data Expr =
     Lit Bool
     | Var Name
     | Not Expr
-    | And Expr Expr
-    | Or Expr Expr
+    | And [Expr]
+    | Or [Expr]
     | Implies Expr Expr
     | Equiv Expr Expr
     deriving (Eq, Show)
@@ -48,7 +48,7 @@ evaluate :: Expr -> Interpretation -> Maybe Bool
 evaluate (Lit value) _ = Just value
 evaluate (Var name) i = lookup name i
 evaluate (Not f) i = not <$> evaluate f i
-evaluate (And f1 f2) i = (&&) <$> evaluate f1 i <*> evaluate f2 i
-evaluate (Or f1 f2) i = (||) <$> evaluate f1 i <*> evaluate f2 i
+evaluate (And fs) i = all (== True) <$> (sequence $ map (flip evaluate i) fs)
+evaluate (Or fs) i = any (== True) <$> (sequence $ map (flip evaluate i) fs)
 evaluate (Implies f1 f2) i = (||) <$> (not <$> evaluate f1 i) <*> evaluate f2 i
 evaluate (Equiv f1 f2) i = (==) <$> evaluate f1 i <*> evaluate f2 i

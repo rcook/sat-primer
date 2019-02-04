@@ -19,8 +19,8 @@ main = hspec $ do
         x2 = Name "x2"
     describe "evaluate" $ do
         it "should be true" $
-            evaluate (And (Not (Var x1)) (Var x2)) (assign [(x1, False), (x2, True)])
+            evaluate (And [Not (Var x1), Var x2]) (assign [(x1, False), (x2, True)])
                 `shouldBe` Just True
         it "should be false" $
-            evaluate (And (Not (Var x1)) (Var x2)) (assign [(x1, True), (x2, True)])
+            evaluate (And [Not (Var x1), Var x2]) (assign [(x1, True), (x2, True)])
                 `shouldBe` Just False

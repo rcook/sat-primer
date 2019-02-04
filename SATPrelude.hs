@@ -18,6 +18,7 @@ module SATPrelude
     , String
     , all
     , any
+    , concatMap
     , const
     , describe
     , elem

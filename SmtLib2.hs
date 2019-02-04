@@ -32,7 +32,7 @@ assertBody :: Expr -> String
 assertBody (Lit value) = printf "(%s)" (show value)
 assertBody (Var (Name name)) = name
 assertBody (Not f) = printf "(not %s)" (assertBody f)
-assertBody (And f1 f2) = printf "(and %s %s)" (assertBody f1) (assertBody f2)
-assertBody (Or f1 f2) = printf "(or %s %s)" (assertBody f1) (assertBody f2)
+assertBody (And fs) = printf "(and%s)" $ concatMap (\f -> ' ' : assertBody f) fs
+assertBody (Or fs) = printf "(or%s)" $ concatMap (\f -> ' ' : assertBody f) fs
 assertBody (Implies f1 f2) = printf "(implies %s %s)" (assertBody f1) (assertBody f2)
 assertBody (Equiv f1 f2) = printf "(iff %s %s)" (assertBody f1) (assertBody f2)

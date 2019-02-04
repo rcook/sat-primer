@@ -11,6 +11,7 @@
 
 module ValiditySpec (main) where
 
+import PrettyOps
 import SATPrelude
 import Semantics
 import ValidityDeduce
@@ -22,15 +23,15 @@ main = hspec $ do
         x2 = Var (Name "x2")
     describe "searchValid" $
         it "searches successfully" $ do
-            searchValid (Implies (And x1 x2) (Or x1 (Not x2)))
+            searchValid (Implies (x1 ∧ x2) (x1 ∨ (¬) x2))
                 `shouldBe` Just True
-            searchValid (Implies (Or x1 (Not x2)) (And x1 x2))
+            searchValid (Implies (x1 ∨ (¬) x2) (x1 ∧ x2))
                 `shouldBe` Just False
-            searchValid (Implies (And x1 (Implies x1 x2)) x2)
+            searchValid (Implies (x1 ∧ (Implies x1 x2)) x2)
                 `shouldBe` Just True
     describe "deduceValid" $ do
         it "proves formula" $
-            deduceValid (Implies (And x1 (Implies x1 x2)) x2)
+            deduceValid (Implies (x1 ∧ (Implies x1 x2)) x2)
                 `shouldBe` Right (Result
                     { contradictions =
                         [ [Satisfies x2, Satisfies x1, Falsifies x2]
@@ -39,7 +40,7 @@ main = hspec $ do
                     , models = []
                     })
         it "disproves formula" $
-            deduceValid (Implies (Or x1 (Not x2)) (And x1 x2))
+            deduceValid (Implies (x1 ∨ (¬) x2) (x1 ∧ x2))
                 `shouldBe` Left (Result
                     { contradictions =
                         [ [Falsifies x1, Satisfies x1]
