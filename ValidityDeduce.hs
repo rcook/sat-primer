@@ -7,13 +7,6 @@ module ValidityDeduce
     , deduceValid
     ) where
 
-import Control.Monad.Trans.State.Strict
-    ( State
-    , get
-    , put
-    , runState
-    )
-
 import SATPrelude
 import Semantics
 

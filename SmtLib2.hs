@@ -11,9 +11,9 @@ import qualified Data.Map.Strict as Map
 import SATPrelude
 import Semantics
 
-data Const = Const String String
+data Const = Const String String deriving Show
 
-data Context = Context [Const]
+data Context = Context [Const] deriving Show
 
 emptyContext :: Context
 emptyContext = Context []

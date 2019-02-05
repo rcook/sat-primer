@@ -3,6 +3,7 @@
     stack --resolver=lts-12.6 script
         --package containers
         --package hspec
+        --package transformers
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
